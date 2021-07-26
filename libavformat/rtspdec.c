@@ -818,6 +818,27 @@ static int rtsp_read_packet(AVFormatContext *s, AVPacket *pkt)
     char cmd[1024];
 
 retry:
+    if(rt->state == RTSP_STATE_PAUSED ){
+
+        if (!(rt->rtsp_flags & RTSP_FLAG_LISTEN)) {
+            /* send dummy request to keep TCP connection alive */
+            if ((av_gettime_relative() - rt->last_cmd_time) / 1000000 >= rt->timeout /3 ||
+                rt->auth_state.stale) {
+                if (rt->server_type == RTSP_SERVER_WMS ||
+                    (rt->server_type != RTSP_SERVER_REAL &&
+                     rt->get_parameter_supported)) {
+                    ff_rtsp_send_cmd_async(s, "GET_PARAMETER", rt->control_uri, NULL);
+                } else {
+                    ff_rtsp_send_cmd_async(s, "OPTIONS", rt->control_uri, NULL);
+                }
+                /* The stale flag should be reset when creating the auth response in
+                 * ff_rtsp_send_cmd_async, but reset it here just in case we never
+                 * called the auth code (if we didn't have any credentials set). */
+                rt->auth_state.stale = 0;
+            }
+        }
+        return AVERROR_RTSP_PAUSED_HEART;
+    }
     if (rt->server_type == RTSP_SERVER_REAL) {
         int i;
 
