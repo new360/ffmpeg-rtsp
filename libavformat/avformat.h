@@ -734,6 +734,17 @@ typedef struct AVInputFormat {
      */
     int (*read_seek)(struct AVFormatContext *,
                      int stream_index, int64_t timestamp, int flags);
+    /**
+     * Seek to a given timestamp relative to the frames in
+     * stream component stream_index.
+     * @param stream_index Must not be -1.
+     * @param flags Selects which direction should be preferred if no exact
+     *              match is available.
+     * @return >= 0 on success (but not necessarily the new offset)
+     */
+    int (*read_speed)(struct AVFormatContext *,
+                     int speed);
+
 
     /**
      * Get the next timestamp in stream[stream_index].time_base units.
@@ -2433,7 +2444,7 @@ int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp,
  *       ABI compatibility yet!
  */
 int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags);
-
+int avformat_speed_file(AVFormatContext *s, int speed);
 /**
  * Discard all internally buffered data. This can be useful when dealing with
  * discontinuities in the byte stream. Generally works only with formats that

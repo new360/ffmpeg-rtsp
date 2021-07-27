@@ -2591,6 +2591,14 @@ int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts,
     // try some generic seek like seek_frame_generic() but with new ts semantics
     return -1; //unreachable
 }
+int avformat_speed_file(AVFormatContext *s, int speed){
+    if(s->iformat->read_speed){
+        return s->iformat->read_speed(s,speed);
+    }else{
+        return -1;
+    }
+}
+
 
 int avformat_flush(AVFormatContext *s)
 {

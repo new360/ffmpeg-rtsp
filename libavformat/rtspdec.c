@@ -542,7 +542,12 @@ static int rtsp_read_play(AVFormatContext *s)
         }
         if (rt->state == RTSP_STATE_PAUSED) {
             cmd[0] = 0;
-        } else {
+        }else if(rt->state == RTSP_STATE_SPEEDING){
+            snprintf(cmd, sizeof(cmd),
+                     "Speed: %d.%d\r\n",
+                     rt->speed,rt->speed);
+
+        }else {
             snprintf(cmd, sizeof(cmd),
                      "Range: npt=%"PRId64".%03"PRId64"-\r\n",
                      rt->seek_timestamp / AV_TIME_BASE,
@@ -972,6 +977,30 @@ static int rtsp_read_seek(AVFormatContext *s, int stream_index,
     }
     return 0;
 }
+static int rtsp_read_speed(struct AVFormatContext *s,
+                 int speed)
+{
+    RTSPState *rt = s->priv_data;
+    int ret = -1;
+    rt->speed = speed;
+    switch(rt->state) {
+    default:
+    case RTSP_STATE_IDLE:
+        break;
+    case RTSP_STATE_STREAMING:
+        if ((ret = rtsp_read_pause(s)) != 0)
+            return ret;
+        rt->state = RTSP_STATE_SPEEDING;
+        if ((ret = rtsp_read_play(s)) != 0)
+            return ret;
+        break;
+    case RTSP_STATE_PAUSED:
+        rt->state = RTSP_STATE_IDLE;
+        break;
+    }
+    return ret;
+
+}
 
 static const AVClass rtsp_demuxer_class = {
     .class_name     = "RTSP demuxer",
@@ -989,6 +1018,7 @@ AVInputFormat ff_rtsp_demuxer = {
     .read_packet    = rtsp_read_packet,
     .read_close     = rtsp_read_close,
     .read_seek      = rtsp_read_seek,
+    .read_speed     = rtsp_read_speed,
     .flags          = AVFMT_NOFILE,
     .read_play      = rtsp_read_play,
     .read_pause     = rtsp_read_pause,
