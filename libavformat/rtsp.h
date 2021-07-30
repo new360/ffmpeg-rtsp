@@ -239,7 +239,7 @@ typedef struct RTSPState {
      * whenever we resume playback. Either way, the value is only used once,
      * see rtsp_read_play() and rtsp_read_seek(). */
     int64_t seek_timestamp;
-    int speed;
+    float speed;
 
 
     int seq;                          /**< RTSP command sequence number */

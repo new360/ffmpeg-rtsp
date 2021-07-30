@@ -743,7 +743,7 @@ typedef struct AVInputFormat {
      * @return >= 0 on success (but not necessarily the new offset)
      */
     int (*read_speed)(struct AVFormatContext *,
-                     int speed);
+                     float speed);
 
 
     /**
@@ -2444,7 +2444,7 @@ int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp,
  *       ABI compatibility yet!
  */
 int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags);
-int avformat_speed_file(AVFormatContext *s, int speed);
+int avformat_speed_file(AVFormatContext *s, float speed);
 /**
  * Discard all internally buffered data. This can be useful when dealing with
  * discontinuities in the byte stream. Generally works only with formats that

@@ -544,8 +544,8 @@ static int rtsp_read_play(AVFormatContext *s)
             cmd[0] = 0;
         }else if(rt->state == RTSP_STATE_SPEEDING){
             snprintf(cmd, sizeof(cmd),
-                     "Scale: %d.%d\r\n",
-                     rt->speed,rt->speed);
+                     "Scale: %f\r\n",
+                     rt->speed);
 
         }else {
             snprintf(cmd, sizeof(cmd),
@@ -978,7 +978,7 @@ static int rtsp_read_seek(AVFormatContext *s, int stream_index,
     return 0;
 }
 static int rtsp_read_speed(struct AVFormatContext *s,
-                 int speed)
+                 float speed)
 {
     RTSPState *rt = s->priv_data;
     int ret = -1;
