@@ -544,7 +544,7 @@ static int rtsp_read_play(AVFormatContext *s)
             cmd[0] = 0;
         }else if(rt->state == RTSP_STATE_SPEEDING){
             snprintf(cmd, sizeof(cmd),
-                     "Speed: %d.%d\r\n",
+                     "Scale: %d.%d\r\n",
                      rt->speed,rt->speed);
 
         }else {
