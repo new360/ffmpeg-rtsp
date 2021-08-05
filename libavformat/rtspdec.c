@@ -570,6 +570,7 @@ static int rtsp_read_play(AVFormatContext *s)
                 rtpctx->range_start_offset =
                     av_rescale_q(reply->range_start, AV_TIME_BASE_Q,
                                  st->time_base);
+                av_log(s,AV_LOG_DEBUG,"zhang range_start_offset =%"PRId64"\n",rtpctx->range_start_offset);
             }
         }
     }
@@ -778,7 +779,7 @@ redo:
         return -1;
     id  = buf[0];
     len = AV_RB16(buf + 1);
-    av_log(s, AV_LOG_TRACE, "id=%d len=%d\n", id, len);
+    // av_log(s, AV_LOG_TRACE, "id=%d len=%d\n", id, len);
     if (len > buf_size || len < 8)
         goto redo;
     /* get the data */
