@@ -563,6 +563,15 @@ static int rtsp_read_play(AVFormatContext *s)
                 RTSPStream *rtsp_st = rt->rtsp_streams[i];
                 RTPDemuxContext *rtpctx = rtsp_st->transport_priv;
                 AVStream *st = NULL;
+                AVStream **stav = s->streams;
+                if(rtpctx && stav){
+                    st = s->streams[0];
+                    rtpctx->range_start_offset =
+                    av_rescale_q(reply->range_start, AV_TIME_BASE_Q,
+                                 st->time_base);
+                    rt->range_start_offset = rtpctx->range_start_offset;
+                    av_log(s,AV_LOG_DEBUG,"zhang range_start_offset----- =%"PRId64"\n",rtpctx->range_start_offset);
+                }
                 if (!rtpctx || rtsp_st->stream_index < 0)
                     continue;
 
@@ -570,6 +579,7 @@ static int rtsp_read_play(AVFormatContext *s)
                 rtpctx->range_start_offset =
                     av_rescale_q(reply->range_start, AV_TIME_BASE_Q,
                                  st->time_base);
+                rt->range_start_offset = rtpctx->range_start_offset;
                 av_log(s,AV_LOG_DEBUG,"zhang range_start_offset =%"PRId64"\n",rtpctx->range_start_offset);
             }
         }
@@ -719,6 +729,8 @@ static int rtsp_probe(AVProbeData *p)
 static int rtsp_read_header(AVFormatContext *s)
 {
     RTSPState *rt = s->priv_data;
+    rt->speed = 1.0f;
+    rt->range_start_offset = 0;
     int ret;
 
     if (rt->initial_timeout > 0)
@@ -930,6 +942,15 @@ retry:
         return ret;
     }
     rt->packets++;
+    av_log(s, AV_LOG_INFO, "zhang before speed pts=%"PRId64",rt->range_start_offset = %"PRId64"\n",pkt->pts,rt->range_start_offset);
+
+    //trick player cronet pts and dts
+    if(fabsf(rt->speed) > 0.000001 && fabsf(rt->speed -1.0f) > 0.000001){
+        pkt->pts = rt->range_start_offset + pkt->pts * rt->speed;
+        pkt->dts = rt->range_start_offset + pkt->dts * rt->speed;
+    }
+    av_log(s, AV_LOG_INFO, "zhang after speed pts=%"PRId64",rt->range_start_offset = %"PRId64"\n",pkt->pts,rt->range_start_offset);
+
 
     if (!(rt->rtsp_flags & RTSP_FLAG_LISTEN)) {
         /* send dummy request to keep TCP connection alive */
@@ -957,7 +978,6 @@ static int rtsp_read_seek(AVFormatContext *s, int stream_index,
 {
     RTSPState *rt = s->priv_data;
     int ret;
-
     rt->seek_timestamp = av_rescale_q(timestamp,
                                       s->streams[stream_index]->time_base,
                                       AV_TIME_BASE_Q);
