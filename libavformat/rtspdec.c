@@ -566,11 +566,17 @@ static int rtsp_read_play(AVFormatContext *s)
                 AVStream **stav = s->streams;
                 if(rtpctx && stav){
                     st = s->streams[0];
-                    rtpctx->range_start_offset =
+                    int64_t cur_range_start_offset =
                     av_rescale_q(reply->range_start, AV_TIME_BASE_Q,
-                                 st->time_base);
-                    rt->range_start_offset = rtpctx->range_start_offset;
-                    av_log(s,AV_LOG_DEBUG,"zhang range_start_offset----- =%"PRId64"\n",rtpctx->range_start_offset);
+                                 st->time_base);                    
+                    //normal to trick player
+                    if(fabsf(rt->speed_prev - 1.0f) <= 0.000001 && (rt->speed -1.0f) > 0.000001 ||fabsf(rt->speed - 1.0f) <= 0.000001){
+                        rt->range_start_offset_prev = rt->range_start_offset = cur_range_start_offset;
+                    }else{
+                        rt->range_start_offset += (cur_range_start_offset - rt->range_start_offset_prev) * rt->speed_prev;
+                        rt->range_start_offset_prev = cur_range_start_offset;
+                    }
+                    av_log(s,AV_LOG_DEBUG,"zhang range_start_offset=%"PRId64",cur_range_start_offset=%"PRId64",range_start_offset_prev=%"PRId64",speed->prev=%f\n",rt->range_start_offset,cur_range_start_offset,rt->range_start_offset_prev,rt->speed_prev);
                 }
                 if (!rtpctx || rtsp_st->stream_index < 0)
                     continue;
@@ -580,7 +586,7 @@ static int rtsp_read_play(AVFormatContext *s)
                     av_rescale_q(reply->range_start, AV_TIME_BASE_Q,
                                  st->time_base);
                 rt->range_start_offset = rtpctx->range_start_offset;
-                av_log(s,AV_LOG_DEBUG,"zhang range_start_offset =%"PRId64"\n",rtpctx->range_start_offset);
+                av_log(s,AV_LOG_DEBUG,"zhang range_start_offset =%"PRId64"\n",rt->range_start_offset);
             }
         }
     }
@@ -730,6 +736,7 @@ static int rtsp_read_header(AVFormatContext *s)
 {
     RTSPState *rt = s->priv_data;
     rt->speed = 1.0f;
+    rt->speed_prev = rt->speed;
     rt->range_start_offset = 0;
     int ret;
 
@@ -945,10 +952,10 @@ retry:
     av_log(s, AV_LOG_INFO, "zhang before speed pts=%"PRId64",rt->range_start_offset = %"PRId64"\n",pkt->pts,rt->range_start_offset);
 
     //trick player cronet pts and dts
-    if(fabsf(rt->speed) > 0.000001 && fabsf(rt->speed -1.0f) > 0.000001){
-        pkt->pts = rt->range_start_offset + pkt->pts * rt->speed;
-        pkt->dts = rt->range_start_offset + pkt->dts * rt->speed;
-    }
+    // if(fabsf(rt->speed) > 0.000001 && fabsf(rt->speed -1.0f) > 0.000001){
+    //     pkt->pts = rt->range_start_offset + pkt->pts * rt->speed;
+    //     pkt->dts = rt->range_start_offset + pkt->dts * rt->speed;
+    // }
     av_log(s, AV_LOG_INFO, "zhang after speed pts=%"PRId64",rt->range_start_offset = %"PRId64"\n",pkt->pts,rt->range_start_offset);
 
 
@@ -1003,6 +1010,7 @@ static int rtsp_read_speed(struct AVFormatContext *s,
 {
     RTSPState *rt = s->priv_data;
     int ret = -1;
+    rt->speed_prev = rt->speed;
     rt->speed = speed;
     switch(rt->state) {
     default:

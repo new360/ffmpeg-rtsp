@@ -240,8 +240,10 @@ typedef struct RTSPState {
      * see rtsp_read_play() and rtsp_read_seek(). */
     int64_t seek_timestamp;
     int64_t range_start_offset;
+    int64_t range_start_offset_prev;
 
     float speed;
+    float speed_prev;
 
 
     int seq;                          /**< RTSP command sequence number */
