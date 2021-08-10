@@ -2593,6 +2593,7 @@ int avformat_seek_file(AVFormatContext *s, int stream_index, int64_t min_ts,
 }
 int avformat_speed_file(AVFormatContext *s, float speed){
     if(s->iformat->read_speed){
+        ff_read_frame_flush(s);
         return s->iformat->read_speed(s,speed);
     }else{
         return -1;
